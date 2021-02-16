@@ -149,11 +149,11 @@ def install_prerequisites():
 	run_os_command({
 		'apt-get': [
 			'sudo apt-get update',
-			'sudo apt-get install -y git build-essential python3-setuptools python3-dev libffi-dev'
+			'sudo apt-get install -y git build-essential python3-setuptools python3-dev libffi-dev libssl-dev cargo'
 		],
 		'yum': [
 			'sudo yum groupinstall -y "Development tools"',
-			'sudo yum install -y epel-release redhat-lsb-core git python-setuptools python-devel openssl-devel libffi-devel'
+			'sudo yum install -y epel-release redhat-lsb-core git python-setuptools python-devel openssl-devel libffi-devel redhat-rpm-config openssl-devel'
 		]
 	})
 
@@ -170,11 +170,8 @@ def install_prerequisites():
 	install_package('git')
 	install_package('pip3', 'python3-pip')
 
-	run_os_command({
-		'python3': "sudo -H python3 -m pip install --upgrade pip setuptools-rust"
-	})
 	success = run_os_command({
-		'python3': "sudo -H python3 -m pip install --upgrade setuptools wheel cryptography ansible~=2.8.15"
+		'python3': "sudo -H python3 -m pip install --upgrade setuptools wheel cryptography ansible~=2.8.15 pip"
 	})
 
 	if not (success or shutil.which('ansible')):
@@ -234,10 +231,11 @@ def install_bench(args):
 	# create user if not exists
 	extra_vars = vars(args)
 	extra_vars.update(frappe_user=args.user)
+	
+	extra_vars.update(user_directory=get_user_home_directory(args.user))
 
 	if os.path.exists(tmp_bench_repo):
 		repo_path = tmp_bench_repo
-
 	else:
 		repo_path = os.path.join(os.path.expanduser('~'), 'bench')
 
@@ -385,6 +383,11 @@ def get_extra_vars_json(extra_args):
 		json.dump(extra_vars, j, indent=1, sort_keys=True)
 
 	return ('@' + json_path)
+
+def get_user_home_directory(user):
+	# Return home directory /home/USERNAME or anything else defined as home directory in
+	# passwd for user.
+	return os.path.expanduser('~'+user)
 
 
 def run_playbook(playbook_name, sudo=False, extra_vars=None):
